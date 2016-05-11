@@ -191,13 +191,19 @@ public:
       }
 
     std::cout << "The traffic simulation is over." << std::endl;
-
+/*
     for ( auto c:m_cop_cars )
       *logFile  << *c << std::endl;
+*/
+    
+     std::vector<std::shared_ptr<justine::robocar::CopCar>>::iterator it13;
+     for(it13=m_cop_cars.begin();it13!=m_cop_cars.end();it13++)
+          *logFile << *(*it13) << std::endl;
 
-    logFile->close ();
 
-    boost::filesystem::rename (
+      logFile->close ();
+
+      boost::filesystem::rename (
       boost::filesystem::path ( logfile ),
       boost::filesystem::path ( get_title ( logfile ) ) );
 
@@ -207,16 +213,28 @@ public:
   {
 
     std::map <std::string, int> res;
+/*
     for ( auto c:m_cop_cars )
       {
         res[c->get_name()] += c->get_num_captured_gangsters();
       }
+*/
+      //Átirva jó 2
+      std::vector<std::shared_ptr<justine::robocar::CopCar>>::iterator it14;
+      for(it14=m_cop_cars.begin();it14!=m_cop_cars.end();it14++)
+          res[(*it14)->get_name()] += (*it14)->get_num_captured_gangsters();
 
     std::ostringstream ss;
-
+/*
     for ( auto r: res )
       ss << r.first << " " << res[r.first] << " ";
+*/
+    //Átirva jó 3
+    std::map<std::string, int>::iterator it12;
+    for(it12=res.begin(); it12!=res.end(); it12++){
+        ss<<(*it12).first<<" "<<res[(*iter).first]<<" ";
 
+    }
     ss << name << ".txt";
 
     return ss.str();
@@ -256,41 +274,51 @@ public:
              " " <<
              cars.size()
              << std::endl;
-
-    for ( auto car:cars )
+      //Átirva jó 4
+     std::vector<std::shared_ptr<justine::robocar::Car>>::iterator it11;        
+    /*for ( auto car:cars )
       {
         car->step();
 
         *logFile << *car
                  <<  " " << std::endl;
 
-      }
+      }*/
+    for(it11=cars.begin();it11!=cars.end();it11++)
+    {
+       (*it11)->step();
+       *logFile << *(*it11)
+                  <<  " " << std::endl;
+     }
   }
 
   inline void pursuit ( void )
   {
-
-    for ( auto car1:m_cop_cars )
+    //Átirva jó 5
+    std::std::vector<std::shared_ptr<justine::robocar::CopCar>>::iterator it7;
+    //for ( auto car1:m_cop_cars )
       {
 
         double lon1 {0.0}, lat1 {0.0};
-        toGPS ( car1->from(), car1->to() , car1->get_step(), &lon1, &lat1 );
+        toGPS ( (*it7)->from(), (*it7)->to() , (*it7)->get_step(), &lon1, &lat1 );
 
         double lon2 {0.0}, lat2 {0.0};
-        for ( auto car:m_smart_cars )
+        //Átirva jó 6
+        std::vector<std::shared_ptr<justine::robocar::SmartCar>>::iterator it8;
+        for(it8=m_smart_cars.begin(); it8!=m_smart_cars.end(); ++it8)
           {
 
-            if ( car->get_type() == CarType::GANGSTER )
+            if ( (*it8)->get_type() == CarType::GANGSTER )
               {
 
-                toGPS ( car->from(), car->to() , car->get_step(), &lon2, &lat2 );
+                toGPS ((*it8)->from(), (*it8)->to() , (*it8)->get_step(), &lon2, &lat2 );
                 double d = dst ( lon1, lat1, lon2, lat2 );
 
                 if ( d < m_catchdist )
                   {
 
-                    car1->captured_gangster();
-                    car->set_type ( CarType::CAUGHT );
+                    (*it7)->captured_gangster();
+                    (*it8)->set_type ( CarType::CAUGHT );
 
                   }
               }

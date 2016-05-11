@@ -30,58 +30,56 @@
  */
 
 #include <traffic.hpp>
+#include <iterator>
+int justine::robocar::Traffic::addCop ( CarLexer& cl ) {
 
-int justine::robocar::Traffic::addCop ( CarLexer& cl )
-{
-  std::shared_ptr<CopCar> c;
+      std::shared_ptr<CopCar> c;
 
-  c = std::make_shared<CopCar> ( *this, cl.get_guided(), cl.get_name() );
+      c = std::make_shared<CopCar> ( *this, cl.get_guided(), cl.get_name() );
 
-//TODO majd ráér később inicializálni, hogy ne lassítsa a szimulációt
-  c->init();
+    //TODO majd ráér később inicializálni, hogy ne lassítsa a szimulációt
+      c->init();
 
-  cars.push_back ( c );
-  m_cop_cars.push_back ( c );
+      cars.push_back ( c );
+      m_cop_cars.push_back ( c );
 
-  int id {0};
-  do
-    {
-      id = std::rand();
-    }
-  while ( m_smart_cars_map.find ( id ) != m_smart_cars_map.end() );
+      int id {0};
+      do
+        {
+          id = std::rand();
+        }
+      while ( m_smart_cars_map.find ( id ) != m_smart_cars_map.end() );
 
-  m_smart_cars_map[id] = c;
+      m_smart_cars_map[id] = c;
 
-  return id;
+      return id;
 }
 
-int justine::robocar::Traffic::addGangster ( CarLexer& cl )
-{
-  std::shared_ptr<SmartCar> c;
+int justine::robocar::Traffic::addGangster ( CarLexer& cl ) {
+      std::shared_ptr<SmartCar> c;
 
-  c = std::make_shared<SmartCar> ( *this, CarType::GANGSTER, cl.get_guided() );
+      c = std::make_shared<SmartCar> ( *this, CarType::GANGSTER, cl.get_guided() );
 
-//TODO majd ráér később inicializálni, hogy ne lassítsa a szimulációt
-  c->init();
+    //TODO majd ráér később inicializálni, hogy ne lassítsa a szimulációt
+      c->init();
 
-  cars.push_back ( c );
-  m_smart_cars.push_back ( c );
+      cars.push_back ( c );
+      m_smart_cars.push_back ( c );
 
-  int id {0};
-  do
-    {
-      id = std::rand();
-    }
-  while ( m_smart_cars_map.find ( id ) != m_smart_cars_map.end() );
+      int id {0};
+      do
+        {
+          id = std::rand();
+        }
+      while ( m_smart_cars_map.find ( id ) != m_smart_cars_map.end() );
 
-  m_smart_cars_map[id] = c;
+      m_smart_cars_map[id] = c;
 
-  return id;
+      return id;
 }
 
 
-void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket client_socket )
-{
+void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket client_socket ) {
   const int network_buffer_size = 524288;
   char data[network_buffer_size]; // TODO buffered write...
 
@@ -123,7 +121,7 @@ void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket clien
                     std::lock_guard<std::mutex> lock ( cars_mutex );
                     cars_copy = cars;
                   }
-
+                  
                   std::stringstream ss;
                   ss <<
                      m_time <<
@@ -132,12 +130,23 @@ void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket clien
                      " " <<
                      cars_copy.size()
                      << std::endl;
-
-                  for ( auto car:cars_copy )
+                /*
+                for ( auto car:cars_copy )
                     {
                       car->step();
 
                       ss << *car
+                         <<  " " << std::endl;
+
+                    } */
+                    //Atirva
+                    
+                    std::vector<std::shared_ptr<Car>>::iterator it1;
+                    for ( it1=cars_copy.begin(); it1!=cars_copy.end(); it1++)
+                    {
+                      (*it1)->step();
+
+                      ss << *(*it1)
                          <<  " " << std::endl;
 
                     }
@@ -156,8 +165,9 @@ void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket clien
           else if ( cl.get_cmd() <100 )
             {
               std::lock_guard<std::mutex> lock ( cars_mutex );
-
-              for ( int i {0}; i<cl.get_num(); ++i )
+             //Átirva jó 2
+             //for ( int i=0; i<cl.get_num(); ++i )
+		         for(auto i : cl.get_num())
                 {
 
                   if ( cl.get_role() =='c' )
@@ -220,13 +230,15 @@ void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket clien
                 {
 
                   bool hasGangsters {false};
-                  for ( auto c:m_smart_cars )
+                  //3 Átirva jó
+                  std::vector<std::shared_ptr<SmartCar>>::iterator it5;
+                  for ( it5=m_smart_cars.begin(); it5!=m_smart_cars.end(); it5++ )
                     {
-                      if ( c->get_type() == CarType::GANGSTER )
+                      if ( (*it5)->get_type() == CarType::GANGSTER )
                         {
                           length += std::sprintf ( data+length,
-                                                   "<OK %d %u %u %u>", cl.get_id(), c->from(),
-                                                   c->to_node(), c->get_step() );
+                                                   "<OK %d %u %u %u>", cl.get_id(), (*it5)->from(),
+                                                   (*it5)->to_node(), (*it5)->get_step() );
 
                           if ( length > network_buffer_size - 512 )
                             {
@@ -255,11 +267,14 @@ void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket clien
                 {
 
                   bool hasCops {false};
-                  for ( auto c:m_cop_cars )
+                 std::vector<std::shared_ptr<CopCar>>::iterator it6;
+                  //4 Átirva
+                  //for ( auto c:m_cop_cars )
+                  for ( it6=m_cop_cars.begin(); it6!=m_cop_cars.end(); it6++ )
                     {
                       length += std::sprintf ( data+length,
-                                               "<OK %d %u %u %u %d>", cl.get_id(), c->from(),
-                                               c->to_node(), c->get_step(), c->get_num_captured_gangsters() );
+                                               "<OK %d %u %u %u %d>", cl.get_id(), (*it5)->from(),
+                                               (*it6)->to_node(), (*it5)->get_step(), (*it5)->get_num_captured_gangsters() );
 
                       if ( length > network_buffer_size - 512 )
                         {
@@ -316,40 +331,38 @@ void justine::robocar::Traffic::cmd_session ( boost::asio::ip::tcp::socket clien
     }
 }
 
-void justine::robocar::Traffic::start_server ( boost::asio::io_service& io_service, unsigned short port )
-{
-  boost::asio::ip::tcp::acceptor acceptor ( io_service,
+void justine::robocar::Traffic::start_server ( boost::asio::io_service& io_service, unsigned short port ) {
+      boost::asio::ip::tcp::acceptor acceptor ( io_service,
       boost::asio::ip::tcp::endpoint ( boost::asio::ip::tcp::v4(), port ) );
-  for ( ;; )
-    {
-      boost::asio::ip::tcp::socket socket ( io_service );
-      acceptor.accept ( socket );
+      for ( ;; )
+        {
+            boost::asio::ip::tcp::socket socket ( io_service );
+            acceptor.accept ( socket );
 
-      std::thread t {&justine::robocar::Traffic::cmd_session, this, std::move ( socket ) };
-      t.detach();
-    }
+            std::thread t {&justine::robocar::Traffic::cmd_session, this, std::move ( socket ) };
+            t.detach();
+        }
 }
 
-double justine::robocar::Traffic::dst ( osmium::unsigned_object_id_type n1, osmium::unsigned_object_id_type n2 ) const
-{
+double justine::robocar::Traffic::dst ( osmium::unsigned_object_id_type n1, osmium::unsigned_object_id_type n2 ) const {
 
-  shm_map_Type::iterator iter1=shm_map->find ( n1 );
-  shm_map_Type::iterator iter2=shm_map->find ( n2 );
+      shm_map_Type::iterator iter1=shm_map->find ( n1 );
+      shm_map_Type::iterator iter2=shm_map->find ( n2 );
 
-  osmium::geom::Coordinates c1 {iter1->second.lon/10000000.0, iter1->second.lat/10000000.0};
-  osmium::geom::Coordinates c2 {iter2->second.lon/10000000.0, iter2->second.lat/10000000.0};
+      osmium::geom::Coordinates c1 {iter1->second.lon/10000000.0, iter1->second.lat/10000000.0};
+      osmium::geom::Coordinates c2 {iter2->second.lon/10000000.0, iter2->second.lat/10000000.0};
 
-  return osmium::geom::haversine::distance ( c1, c2 );
+      return osmium::geom::haversine::distance ( c1, c2 );
 
 }
 
 double justine::robocar::Traffic::dst ( double lon1, double lat1, double lon2, double lat2 ) const
 {
 
-  osmium::geom::Coordinates c1 {lon1, lat1};
-  osmium::geom::Coordinates c2 {lon2, lat2};
+      osmium::geom::Coordinates c1 {lon1, lat1};
+      osmium::geom::Coordinates c2 {lon2, lat2};
 
-  return osmium::geom::haversine::distance ( c1, c2 );
+      return osmium::geom::haversine::distance ( c1, c2 );
 
 }
 
@@ -358,90 +371,112 @@ void justine::robocar::Traffic::toGPS ( osmium::unsigned_object_id_type from,
                                         osmium::unsigned_object_id_type step, double *lo, double *la ) const
 {
 
-  shm_map_Type::iterator iter1=shm_map->find ( from );
-  double lon1 {iter1->second.lon/10000000.0}, lat1 {iter1->second.lat/10000000.0};
+      shm_map_Type::iterator iter1=shm_map->find ( from );
+      double lon1 {iter1->second.lon/10000000.0}, lat1 {iter1->second.lat/10000000.0};
 
-  shm_map_Type::iterator iter2=shm_map->find ( alist ( from, to ) );
-  double lon2 {iter2->second.lon/10000000.0}, lat2 {iter2->second.lat/10000000.0};
+      shm_map_Type::iterator iter2=shm_map->find ( alist ( from, to ) );
+      double lon2 {iter2->second.lon/10000000.0}, lat2 {iter2->second.lat/10000000.0};
 
-  osmium::unsigned_object_id_type maxstep = palist ( from, to );
+      osmium::unsigned_object_id_type maxstep = palist ( from, to );
 
-  if ( maxstep == 0 )
-    {
-      maxstep = 1;
-    }
+      if ( maxstep == 0 )
+        {
+          maxstep = 1;
+        }
 
-  lat1 += step * ( ( lat2 - lat1 ) / maxstep );
-  lon1 += step * ( ( lon2 - lon1 ) / maxstep );
+      lat1 += step * ( ( lat2 - lat1 ) / maxstep );
+      lon1 += step * ( ( lon2 - lon1 ) / maxstep );
 
-  *lo = lon1;
-  *la = lat1;
+      *lo = lon1;
+      *la = lat1;
 
 }
 
-osmium::unsigned_object_id_type justine::robocar::Traffic::naive_nearest_gangster (
-  osmium::unsigned_object_id_type from,
-  osmium::unsigned_object_id_type to,
-  osmium::unsigned_object_id_type step )
-{
-  osmium::unsigned_object_id_type ret = from;
+osmium::unsigned_object_id_type justine::robocar::Traffic::naive_nearest_gangster (osmium::unsigned_object_id_type from,osmium::unsigned_object_id_type to, osmium::unsigned_object_id_type step ) {
+  
+      osmium::unsigned_object_id_type ret = from;
 
-  double lon1 {0.0}, lat1 {0.0};
-  toGPS ( from, to, step, &lon1, &lat1 );
+      double lon1 {0.0}, lat1 {0.0};
+      toGPS ( from, to, step, &lon1, &lat1 );
 
-  double maxd = std::numeric_limits<double>::max();
-  double lon2 {0.0}, lat2 {0.0};
+      double maxd = std::numeric_limits<double>::max();
+      double lon2 {0.0}, lat2 {0.0};
+      //5 Átirva
+      //ezt kell átirni iterátorra 
+      //iterátor adatszerken megy végig 
+      //ez esetben std::vector
+      //ez a foreach ciklus
+      //max 10-et első a 70 pont többi viszon 50 pont
+      //(*(*it)).get_type();
+      //vagy ((*it).get()).getType();
+      std::vector<std::shared_ptr<SmartCar>>::iterator it;
+      /*for(auto car =*it)*/
+      /*for ( auto car:m_smart_cars )
+        {
+          if ( car->get_type() == CarType::GANGSTER )
+            {
 
-  for ( auto car:m_smart_cars )
-    {
+              toGPS ( car->from(), car->to() , car->get_step(), &lon2, &lat2 );
 
-      if ( car->get_type() == CarType::GANGSTER )
+              double d = dst ( lon1, lat1, lon2, lat2 );
+
+              if ( d < maxd )
+                {
+                  maxd = d;
+                  ret = car->to_node();
+
+                }
+            }
+
+        }*/
+        //vagy a for ciklus fejét és a ciklusba a auto car = *it;
+        for (it=m_smart_cars.begin(); it!=m_smart_cars.end(); it++ )
         {
 
-          toGPS ( car->from(), car->to() , car->get_step(), &lon2, &lat2 );
+          if ( (*(*it)).get_type() == CarType::GANGSTER )
+            {
 
-          double d = dst ( lon1, lat1, lon2, lat2 );
+              toGPS ( (*(*it)).from(), (*(*it)).to() , (*(*it)).get_step(), &lon2, &lat2 );
+
+              double d = dst ( lon1, lat1, lon2, lat2 );
+
+              if ( d < maxd )
+                {
+                  maxd = d;
+                  ret = (*(*it)).to_node();
+
+                }
+            }
+
+        }
+
+      return ret;
+
+}
+
+osmium::unsigned_object_id_type justine::robocar::Traffic::naive_node_for_nearest_gangster ( osmium::unsigned_object_id_type from, osmium::unsigned_object_id_type to, osmium::unsigned_object_id_type step )
+{
+      osmium::unsigned_object_id_type ret = 0;
+
+      osmium::unsigned_object_id_type car = naive_nearest_gangster ( from, to , step );
+
+      shm_map_Type::iterator iter=shm_map->find ( from );
+
+      double maxd = std::numeric_limits<double>::max();
+      //6 Átirva
+      //for ( uint_vector::iterator noderefi = iter->second.m_alist.begin(); noderefi!=iter->second.m_alist.end(); ++noderefi )
+      for ( auto asd: iter->second.m_alist) {
+
+          double d = dst ( car, asd );
 
           if ( d < maxd )
             {
-              maxd = d;
-              ret = car->to_node();
-
+                maxd = d;
+                ret = std::distance ( iter->second.m_alist.begin(), asd );
             }
+
         }
 
-    }
-
-  return ret;
-
+        return ret;
 }
-
-osmium::unsigned_object_id_type justine::robocar::Traffic::naive_node_for_nearest_gangster (
-  osmium::unsigned_object_id_type from,
-  osmium::unsigned_object_id_type to,
-  osmium::unsigned_object_id_type step )
-{
-  osmium::unsigned_object_id_type ret = 0;
-
-  osmium::unsigned_object_id_type car = naive_nearest_gangster ( from, to , step );
-
-  shm_map_Type::iterator iter=shm_map->find ( from );
-
-  double maxd = std::numeric_limits<double>::max();
-
-  for ( uint_vector::iterator noderefi = iter->second.m_alist.begin();
-        noderefi!=iter->second.m_alist.end(); ++noderefi )
-    {
-
-      double d = dst ( car, *noderefi );
-
-      if ( d < maxd )
-        {
-          maxd = d;
-          ret = std::distance ( iter->second.m_alist.begin(), noderefi );
-        }
-
-    }
-
-  return ret;
-}
+//6
